@@ -366,6 +366,8 @@
                         const firstSourceInput = sourceLangOptions.querySelector('input');
                         if (firstSourceInput) {
                             firstSourceInput.checked = true;
+                            // 更新目标语言的禁用状态
+                            updateTargetLanguageDisabled(firstSourceInput.value);
                             loadStagedFiles();
                         }
                     }
@@ -381,6 +383,8 @@
                 sourceLangOptions.addEventListener('click', (e) => {
                     const radio = e.target.closest('input[type="radio"][name="sourceLang"]');
                     if (radio && radio.checked) {
+                        // 更新目标语言的禁用状态
+                        updateTargetLanguageDisabled(radio.value);
                         // 使用 setTimeout 确保在 radio 状态更新后再加载文件
                         setTimeout(loadStagedFiles, 0);
                     }
@@ -413,61 +417,49 @@
             input.id = id;
             input.name = `${type}Lang`;
             input.value = lang;
-            input.className = 'radio-button hidden';
+            input.className = 'hidden radio-button';
 
-            // 如果是目标语言选项，添加data-lang属性用于后续禁用
+            // 如果是目标语言，检查是否需要禁用
             if (!isRadio) {
-                input.setAttribute('data-lang', lang);
+                const sourceLang = document.querySelector('input[name="sourceLang"]:checked')?.value;
+                if (sourceLang === lang) {
+                    input.disabled = true;
+                    label.className += ' opacity-50 cursor-not-allowed';
+                }
             }
 
             label.htmlFor = id;
-            label.className = 'lang-option block p-2 text-center rounded-lg border border-gray-200 cursor-pointer hover:border-purple-500/30 transition-all duration-200 text-gray-900 text-sm';
+            label.className = 'lang-option block p-2 rounded-lg border border-gray-200 cursor-pointer text-center text-sm transition-all duration-200';
             label.textContent = lang.toUpperCase();
 
-            // 如果是源语言选项，添加change事件监听器
-            if (isRadio) {
-                input.addEventListener('change', async function() {
-                    if (this.checked) {
-                        // 获取所有目标语言选项
-                        const targetInputs = document.querySelectorAll('input[name="targetLang"]');
-                        const selectedLang = this.value;
-                        
-                        // 遍历目标语言选项，清除所有选中状态并更新禁用状态
-                        targetInputs.forEach(targetInput => {
-                            const targetLabel = document.querySelector(`label[for="${targetInput.id}"]`);
-                            // 清除所有选中状态
-                            targetInput.checked = false;
-                            
-                            if (targetInput.getAttribute('data-lang') === selectedLang) {
-                                // 禁用相同的语言选项
-                                targetInput.disabled = true;
-                                targetLabel.classList.add('opacity-50', 'cursor-not-allowed');
-                                targetLabel.classList.remove('hover:border-purple-500/30');
-                            } else {
-                                // 启用其他语言选项
-                                targetInput.disabled = false;
-                                targetLabel.classList.remove('opacity-50', 'cursor-not-allowed');
-                                targetLabel.classList.add('hover:border-purple-500/30');
-                            }
-                        });
-
-                        // 清空文件选择
-                        const select = document.getElementById('stagedFiles');
-                        if (select) {
-                            select.innerHTML = '<option value="">Select staged file</option>';
-                        }
-                        
-                        // 触发暂存文件列表更新
-                        await loadStagedFiles();
-                    }
-                });
-            }
-
             const div = document.createElement('div');
-            div.className = 'inline-block m-1';
             div.appendChild(input);
             div.appendChild(label);
             container.appendChild(div);
+
+            // 如果是源语言选项，添加change事件监听器
+            if (isRadio) {
+                input.addEventListener('change', () => {
+                    // 更新所有目标语言选项的禁用状态
+                    updateTargetLanguageDisabled(lang);
+                });
+            }
+        }
+
+        // Update target language disabled state
+        function updateTargetLanguageDisabled(selectedSourceLang) {
+            const targetInputs = document.querySelectorAll('#targetLangOptions input[type="checkbox"]');
+            targetInputs.forEach(input => {
+                const label = input.nextElementSibling;
+                if (input.value === selectedSourceLang) {
+                    input.disabled = true;
+                    input.checked = false;
+                    label.className = 'lang-option block p-2 rounded-lg border border-gray-200 cursor-not-allowed text-center text-sm transition-all duration-200 opacity-50';
+                } else {
+                    input.disabled = false;
+                    label.className = 'lang-option block p-2 rounded-lg border border-gray-200 cursor-pointer text-center text-sm transition-all duration-200';
+                }
+            });
         }
 
         // Show success message
