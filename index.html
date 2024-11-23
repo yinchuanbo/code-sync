@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Sync Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            font-style: italic;
+            background: #e8e8e8;
+            color: #0d0d0d;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .glass-effect:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .radio-button:checked + label {
+            background: rgba(147, 51, 234, 0.05);
+            border-color: #9333ea;
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(147, 51, 234, 0.1);
+        }
+
+        .glow {
+            box-shadow: 0 0 20px rgba(147, 51, 234, 0.1);
+        }
+
+        .bg-grid {
+            background-size: 50px 50px;
+            background-image: 
+                linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+        }
+
+        .gradient-border {
+            position: relative;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, #9333ea, #3b82f6);
+            border-radius: 0.5rem;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .gradient-border:hover::before {
+            opacity: 0.15;
+        }
+
+        select, input, button {
+            font-style: italic;
+            transition: all 0.3s ease;
+            background: #fff !important;
+            color: #0d0d0d !important;
+        }
+
+        select:hover, input:hover {
+            background: #fafafa !important;
+        }
+
+        select:focus, input:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(147, 51, 234, 0.1);
+        }
+
+        .form-card {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-card:nth-child(1) { animation-delay: 0.1s; }
+        .form-card:nth-child(2) { animation-delay: 0.2s; }
+        .form-card:nth-child(3) { animation-delay: 0.3s; }
+        .form-card:nth-child(4) { animation-delay: 0.4s; }
+        .form-card:nth-child(5) { animation-delay: 0.5s; }
+
+        .lang-option {
+            transition: all 0.2s ease;
+            background: #fff;
+            color: #0d0d0d;
+            font-style: italic;
+        }
+
+        .lang-option:hover {
+            transform: translateY(-2px);
+            background: #fafafa;
+        }
+
+        select option {
+            background: #fff;
+            color: #0d0d0d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="h-full bg-grid">
+    <div class="min-h-full w-full p-2 sm:p-3 lg:p-4">
+        <div class="glass-effect rounded-lg p-4 shadow-lg max-w-3xl mx-auto">
+            <main class="fade-in">
+                <form id="syncForm" class="space-y-4">
+                    <!-- Project Selection -->
+                    <div class="glass-effect rounded-lg p-3 form-card">
+                        <label for="projectSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                            Select Project
+                        </label>
+                        <select id="projectSelect" required
+                            class="block w-full rounded-lg border-0 py-2 px-3 shadow-sm ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-inset focus:ring-purple-500/30 transition-all duration-200 text-sm">
+                            <option value="">Choose a project</option>
+                        </select>
+                    </div>
+
+                    <!-- Source Language -->
+                    <div class="glass-effect rounded-lg p-3 form-card">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Source Language</label>
+                        <div id="sourceLangOptions"
+                            class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                        </div>
+                    </div>
+
+                    <!-- Target Language -->
+                    <div class="glass-effect rounded-lg p-3 form-card">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Target Language</label>
+                        <div id="targetLangOptions"
+                            class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                        </div>
+                    </div>
+
+                    <!-- File Selection -->
+                    <div class="glass-effect rounded-lg p-3 form-card">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select File</label>
+                        <select id="stagedFiles" required
+                            class="block w-full rounded-lg border-0 py-2 px-3 shadow-sm ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-inset focus:ring-purple-500/30 transition-all duration-200 text-sm">
+                            <option value="">Select staged file</option>
+                        </select>
+                        <p class="mt-2 text-xs text-gray-500">Only files in Git staging area are shown</p>
+                    </div>
+
+                    <!-- Relative Path -->
+                    <div class="glass-effect rounded-lg p-3 form-card">
+                        <label for="relativePath" class="block text-sm font-medium text-gray-700 mb-2">
+                            Relative Path
+                        </label>
+                        <input type="text" id="relativePath" required readonly
+                            class="block w-full rounded-lg border-0 py-2 px-3 shadow-sm ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-inset focus:ring-purple-500/30 transition-all duration-200 text-sm">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end form-card">
+                        <button type="submit" id="submitBtn"
+                            class="gradient-border rounded-lg bg-white px-6 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2 transition-all duration-200">
+                            <span class="flex items-center">
+                                <span>Start Sync</span>
+                                <svg id="loadingSpinner" class="loading-spinner ml-2 h-4 w-4 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Result Display -->
+                <div id="result" class="mt-4 hidden fade-in">
+                    <div class="rounded-lg p-3 glass-effect">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 pt-0.5">
+                                <!-- Success Icon -->
+                                <svg class="h-5 w-5 text-green-600 success-icon hidden" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <!-- Error Icon -->
+                                <svg class="h-5 w-5 text-red-600 error-icon hidden" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 w-0 flex-1">
+                                <p class="result-message text-sm font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Load configuration
+        let config;
+        let isLoadingFiles = false; // 添加标志位防止重复加载
+        
+        // Get staged files list
+        async function loadStagedFiles() {
+            if (isLoadingFiles) return; // 如果正在加载，直接返回
+            isLoadingFiles = true; // 设置加载标志
+
+            try {
+                const projectName = document.getElementById('projectSelect').value;
+                const sourceLang = document.querySelector('input[name="sourceLang"]:checked')?.value;
+                const selectedProject = config[projectName];
+
+                if (!projectName || !sourceLang || !selectedProject) {
+                    return;
+                }
+
+                const submitBtn = document.getElementById('submitBtn');
+                const loadingSpinner = document.getElementById('loadingSpinner');
+                const select = document.getElementById('stagedFiles');
+                
+                submitBtn.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+
+                // 清空选择框并添加默认选项
+                select.innerHTML = '<option value="">Select staged file</option>';
+
+                // 清除之前的错误消息
+                clearMessage();
+
+                const response = await fetch(`/staged-files?projectName=${encodeURIComponent(projectName)}&sourceLang=${encodeURIComponent(sourceLang)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                if (data.success) {
+                    if (data.files.length === 0) {
+                        showError(`暂存区中没有找到文件，源语言目录：${data.sourceDomain}`);
+                        return;
+                    }
+
+                    // 添加文件选项
+                    data.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.path;
+                        option.textContent = file.path;
+                        select.appendChild(option);
+                    });
+
+                    // 更新相对路径输入框
+                    const relativePathInput = document.getElementById('relativePath');
+                    relativePathInput.value = select.value;
+                    
+                    // 清除错误消息（如果有的话）
+                    clearMessage();
+                } else {
+                    showError(data.message || '获取暂存文件失败');
+                }
+            } catch (error) {
+                console.error('加载暂存文件失败:', error);
+                showError('加载暂存文件失败: ' + error.message);
+            } finally {
+                const submitBtn = document.getElementById('submitBtn');
+                const loadingSpinner = document.getElementById('loadingSpinner');
+                
+                submitBtn.disabled = false;
+                loadingSpinner.classList.add('hidden');
+                isLoadingFiles = false; // 重置加载标志
+            }
+        }
+
+        // Initialize form
+        async function initializeForm() {
+            try {
+                const response = await fetch('/config');
+                config = await response.json();
+                
+                const projectSelect = document.getElementById('projectSelect');
+                projectSelect.innerHTML = '';
+                
+                const projects = Object.keys(config);
+                projects.forEach((project, index) => {
+                    if (project.trim()) {  
+                        const option = document.createElement('option');
+                        option.value = project;
+                        option.textContent = project;
+                        projectSelect.appendChild(option);
+                    }
+                });
+
+                // 默认选择第一个项目
+                if (projects.length > 0) {
+                    projectSelect.value = projects[0];
+                }
+
+                // 更新语言选项
+                const updateLanguageOptions = () => {
+                    const selectedProject = config[projectSelect.value];
+                    if (!selectedProject) return;
+
+                    const sourceLangOptions = document.getElementById('sourceLangOptions');
+                    const targetLangOptions = document.getElementById('targetLangOptions');
+                    
+                    sourceLangOptions.innerHTML = '';
+                    targetLangOptions.innerHTML = '';
+
+                    // 使用项目配置中的语言
+                    const languages = Object.keys(selectedProject.lans || {});
+                    console.log('Available languages:', languages);
+                    
+                    if (languages.length > 0) {
+                        languages.forEach(lang => {
+                            createLanguageOption(lang, 'source', true);
+                            createLanguageOption(lang, 'target', false);
+                        });
+                        
+                        // 默认选中第一个源语言
+                        const firstSourceInput = sourceLangOptions.querySelector('input');
+                        if (firstSourceInput) {
+                            firstSourceInput.checked = true;
+                            loadStagedFiles();
+                        }
+                    }
+                };
+
+                // 监听项目选择变化
+                projectSelect.addEventListener('change', () => {
+                    updateLanguageOptions();
+                });
+
+                // 监听源语言选择变化（使用事件委托）
+                const sourceLangOptions = document.getElementById('sourceLangOptions');
+                sourceLangOptions.addEventListener('click', (e) => {
+                    const radio = e.target.closest('input[type="radio"][name="sourceLang"]');
+                    if (radio && radio.checked) {
+                        // 使用 setTimeout 确保在 radio 状态更新后再加载文件
+                        setTimeout(loadStagedFiles, 0);
+                    }
+                });
+
+                // 初始化时立即更新语言选项
+                updateLanguageOptions();
+
+                // 监听文件选择变化（只绑定一次）
+                const stagedFilesSelect = document.getElementById('stagedFiles');
+                const relativePathInput = document.getElementById('relativePath');
+                stagedFilesSelect.addEventListener('change', () => {
+                    relativePathInput.value = stagedFilesSelect.value;
+                });
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError('Initialization failed: ' + error.message);
+            }
+        }
+
+        // Create language option
+        function createLanguageOption(lang, type, isRadio) {
+            const container = document.getElementById(`${type}LangOptions`);
+            const input = document.createElement('input');
+            const label = document.createElement('label');
+            const id = `${type}-${lang}`;
+
+            input.type = isRadio ? 'radio' : 'checkbox';
+            input.id = id;
+            input.name = `${type}Lang`;
+            input.value = lang;
+            input.className = 'radio-button hidden';
+
+            // 如果是目标语言选项，添加data-lang属性用于后续禁用
+            if (!isRadio) {
+                input.setAttribute('data-lang', lang);
+            }
+
+            label.htmlFor = id;
+            label.className = 'lang-option block p-2 text-center rounded-lg border border-gray-200 cursor-pointer hover:border-purple-500/30 transition-all duration-200 text-gray-900 text-sm';
+            label.textContent = lang.toUpperCase();
+
+            // 如果是源语言选项，添加change事件监听器
+            if (isRadio) {
+                input.addEventListener('change', async function() {
+                    if (this.checked) {
+                        // 获取所有目标语言选项
+                        const targetInputs = document.querySelectorAll('input[name="targetLang"]');
+                        const selectedLang = this.value;
+                        
+                        // 遍历目标语言选项，清除所有选中状态并更新禁用状态
+                        targetInputs.forEach(targetInput => {
+                            const targetLabel = document.querySelector(`label[for="${targetInput.id}"]`);
+                            // 清除所有选中状态
+                            targetInput.checked = false;
+                            
+                            if (targetInput.getAttribute('data-lang') === selectedLang) {
+                                // 禁用相同的语言选项
+                                targetInput.disabled = true;
+                                targetLabel.classList.add('opacity-50', 'cursor-not-allowed');
+                                targetLabel.classList.remove('hover:border-purple-500/30');
+                            } else {
+                                // 启用其他语言选项
+                                targetInput.disabled = false;
+                                targetLabel.classList.remove('opacity-50', 'cursor-not-allowed');
+                                targetLabel.classList.add('hover:border-purple-500/30');
+                            }
+                        });
+
+                        // 清空文件选择
+                        const select = document.getElementById('stagedFiles');
+                        if (select) {
+                            select.innerHTML = '<option value="">Select staged file</option>';
+                        }
+                        
+                        // 触发暂存文件列表更新
+                        await loadStagedFiles();
+                    }
+                });
+            }
+
+            const div = document.createElement('div');
+            div.className = 'inline-block m-1';
+            div.appendChild(input);
+            div.appendChild(label);
+            container.appendChild(div);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const result = document.getElementById('result');
+            if (!result) return; // 防止元素不存在
+
+            const successIcon = result.querySelector('.success-icon');
+            const errorIcon = result.querySelector('.error-icon');
+            const messageEl = result.querySelector('.result-message');
+            
+            if (!messageEl) return; // 防止消息元素不存在
+
+            result.classList.remove('hidden');
+            if (successIcon) successIcon.classList.remove('hidden');
+            if (errorIcon) errorIcon.classList.add('hidden');
+            messageEl.textContent = message;
+            messageEl.className = 'text-sm font-medium text-green-600';
+        }
+
+        // Show error message
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            const successIcon = resultDiv.querySelector('.success-icon');
+            const errorIcon = resultDiv.querySelector('.error-icon');
+            const messageDiv = resultDiv.querySelector('.result-message');
+            
+            resultDiv.classList.remove('hidden');
+            successIcon.classList.add('hidden');
+            errorIcon.classList.remove('hidden');
+            messageDiv.textContent = message;
+            messageDiv.classList.remove('text-green-700');
+            messageDiv.classList.add('text-red-700');
+        }
+
+        // Clear error/success message
+        function clearMessage() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.classList.add('hidden');
+        }
+
+        document.getElementById('syncForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+
+            const projectName = document.getElementById('projectSelect').value;
+            const sourceLang = document.querySelector('input[name="sourceLang"]:checked')?.value;
+            const targetLangs = Array.from(document.querySelectorAll('input[name="targetLang"]:checked')).map(el => el.value);
+            const filePath = document.getElementById('stagedFiles').value;
+            const relativePath = document.getElementById('relativePath').value;
+
+            if (!projectName || !sourceLang || targetLangs.length === 0 || !filePath || !relativePath) {
+                showError('请填写所有必填字段');
+                return;
+            }
+
+            if (targetLangs.includes(sourceLang)) {
+                showError('目标语言不能包含源语言');
+                return;
+            }
+
+            formData.append('projectName', projectName);
+            formData.append('sourceLang', sourceLang);
+            formData.append('targetLangs', JSON.stringify(targetLangs));
+            formData.append('filePath', filePath);
+            formData.append('relativePath', relativePath);
+
+            const submitBtn = document.getElementById('submitBtn');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            try {
+                submitBtn.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+
+                const response = await fetch('/sync', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Synchronization successful');
+                } else {
+                    showError(result.message || 'Synchronization failed');
+                }
+            } catch (error) {
+                showError('Synchronization failed: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                loadingSpinner.classList.add('hidden');
+            }
+        });
+
+        // Initialize form
+        initializeForm();
+    </script>
+</body>
+</html>
